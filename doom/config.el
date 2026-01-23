@@ -33,7 +33,7 @@
 ;; available. You can either set `doom-theme' or manually load a theme with the
 ;; `load-theme' function. This is the default:
 (setq doom-theme 'doom-one)
-(setq doom-font (font-spec :size 14))
+(setq doom-font (font-spec :family "Ubuntu Mono" :size 14))
 
 ;; This determines the style of line numbers in effect. If set to `nil', line
 ;; numbers are disabled. For relative line numbers, set this to `relative'.
@@ -41,45 +41,58 @@
 
 ;; If you use `org' and don't want your org files in the default location below,
 ;; change `org-directory'. It must be set before org loads!
-
 (setq org-directory "~/org/")
-(setq org-default-notes-file (expand-file-name "refile.org" org-directory))
+(setq org-default-notes-file (expand-file-name "inbox.org" org-directory))
+(setq org-id-locations-file (expand-file-name ".orgids" "~/.config/emacs/.local/etc/org/"))
+(map! :leader
+      (:prefix ("o" . nil)
+       :desc "Org capture" "o" #'org-capture))
 (after! org
         (setq org-capture-templates
-              `(("r" "refile" plain
-                 (file ,(expand-file-name "refile.org" org-directory))
-                 "%?"))))
-(after! org
-        (setq org-id-locations-file (expand-file-name ".orgids" "~/.config/emacs/.local/etc/org/")))
-(global-set-key (kbd "C-c n o") #'org-capture)
+              `(
+                ("n" "notes" entry
+                 (file+headline "~/org/inbox.org" "Notes")
+                 "* %U %?")
+                ("d" "ideas" plain
+                 (file+headline "~/org/inbox.org" "Ideas")
+                 "- *%U* %?")
+                ("t" "tasks" entry
+                 (file "~/org/tasks.org")
+                 "* TODO %?")
+              )))
 
-(setq org-agenda-files (directory-files-recursively org-directory "\\org$"))
-(setq org-agenda-skip-scheduled-if-done t
-      org-agenda-skip-deadline-if-done t
-      org-agenda-skip-timestamp-if-done t)
+(after! org
+        (setq org-agenda-files '("~/org/projects.org" "~/org/todos.org"))
+        (setq org-agenda-skip-scheduled-if-done t
+              org-agenda-skip-deadline-if-done t
+              org-agenda-skip-timestamp-if-done t))
 
 (setq org-roam-capture-templates
-      '(("d" "defualt" plain "%?"
-         :if-new (file+head "%<%Y$m%d%H%M%S>-${slug}.org"
+      '(("d" "ideas" plain "%?"
+         :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
                             "#+title: ${title}\n")
-         :immediate-finish t
          :unnarrowed t)
-        ("r" "reference" plain "%?"
-         :if-new (file+head "reference/%<%Y$m%d%H%M%S>-${slug}.org"
-                            "#+title: ${title}\n#+author: \n#+type: \n#+link: \n")
-         :immediate-finish t
+        ("r" "references" plain "%?"
+         :if-new (file+head "reference/%<%Y%m%d%H%M%S>-${slug}.org"
+                            "#+title: ${title}\n#+author: \n#+type: \n#+source: \n")
          :unnarrowed t)))
 (use-package! org-roam
               :ensure t
               :custom
               (org-roam-directory (file-truename "~/org/roam/"))
-              :bind (("C-c n l" . org-roam-buffer-toggle)
-                     ("C-c n f" . org-roam-node-find)
-                     ("C-c n g" . org-roam-ui-mode)
-                     ("C-c n i" . org-roam-node-insert)
-                     ("C-c n c" . org-roam-capture))
+              (org-roam-dailies-directory "dailies/")
               :config
-              (org-roam-db-autosync-mode))
+              (org-roam-db-autosync-mode)
+              (map! :leader
+                   (:prefix ("n" . nil)
+                    :desc "Org-roam capture"       "c" #'org-roam-capture
+                    :desc "Org-roam insert node"   "i" #'org-roam-node-insert
+                    :desc "Org-roam find node"     "f" #'org-roam-node-find
+                    :desc "Org-roam buffer toggle" "l" #'org-roam-buffer-toggle
+                    :desc "Org-roam UI"            "g" #'org-roam-ui-mode
+                    :desc "Today"                  "t" #'org-roam-dailies-goto-today
+                    :desc "Yesterday"              "y" #'org-roam-dailies-goto-yesterday
+                    :desc "Tomorrow"               "m" #'org-roam-dailies-goto-tomorrow)))
 (use-package! org-roam-ui
               :after org-roam
               :hook (org-roam-mode . org-roam-ui-mode)
@@ -88,6 +101,9 @@
                     org-roam-ui-follow t
                     org-roam-ui-update-on-save t
                     org-roam-ui-open-on-start t))
+
+(setq evil-escape-key-sequence "jk")
+(setq evil-escape-delay 0.2)
 
 ;; Whenever you reconfigure a package, make sure to wrap your config in an
 ;; `after!' block, otherwise Doom's defaults may override your settings. E.g.
